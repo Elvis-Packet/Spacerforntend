@@ -1,0 +1,166 @@
+.space-details-page {
+  padding: 2rem 0;
+}
+
+.space-details-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  background-color: var(--color-background-light);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.space-details-image {
+  position: relative;
+  height: 300px;
+  overflow: hidden;
+}
+
+.space-details-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.space-status {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background-color: var(--color-primary);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.space-status.booked {
+  background-color: var(--color-warning);
+}
+
+.space-details-content {
+  padding: 2rem;
+}
+
+.space-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.space-name {
+  font-size: 2rem;
+  color: var(--color-text-dark);
+  margin: 0;
+}
+
+.space-price {
+  font-size: 1.5rem;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.space-details-description {
+  margin-bottom: 2rem;
+  color: var(--color-text);
+  line-height: 1.7;
+}
+
+.booking-form {
+  padding: 2rem;
+  background-color: var(--color-background-dark);
+  border-radius: var(--border-radius-lg);
+}
+
+.booking-form-title {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--color-text-dark);
+}
+
+.booking-summary {
+  background-color: var(--color-background-light);
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  margin: 1.5rem 0;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.summary-row.total {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+.booking-error {
+  background-color: var(--color-error-light);
+  color: var(--color-error);
+  padding: 1rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 1.5rem;
+}
+
+.booking-success {
+  background-color: var(--color-success-light);
+  color: var(--color-success-dark);
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  text-align: center;
+}
+
+.booking-success h3 {
+  color: var(--color-success-dark);
+  margin-bottom: 1rem;
+}
+
+.booking-success .btn {
+  margin-top: 1rem;
+}
+
+.space-unavailable {
+  background-color: var(--color-warning-light);
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.space-unavailable p {
+  margin-bottom: 1rem;
+  color: var(--color-warning-dark);
+}
+
+/* Date picker customization */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker__input-container input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+}
+
+/* Media query for desktop */
+@media (min-width: 768px) {
+  .space-details-container {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .space-details-image {
+    height: auto;
+  }
+}
