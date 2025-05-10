@@ -1,200 +1,196 @@
-import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { useAuth } from '../context/AuthContext'
-import './Auth.css'
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import './Register.css';
 
 function Register() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [role, setRole] = useState('CLIENT')
-  const [formErrors, setFormErrors] = useState({})
-  const { register, loading, error, isAuthenticated, clearError } = useAuth()
-  
-  // If already authenticated, redirect to dashboard
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />
-  }
-  
-  const validateForm = () => {
-    const errors = {}
-    
-    if (!firstName.trim()) {
-      errors.firstName = 'First name is required'
-    }
-    
-    if (!lastName.trim()) {
-      errors.lastName = 'Last name is required'
-    }
-    
-    if (!email.trim()) {
-      errors.email = 'Email is required'
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      errors.email = 'Email is invalid'
-    }
-    
-    if (!password) {
-      errors.password = 'Password is required'
-    } else if (password.length < 6) {
-      errors.password = 'Password must be at least 6 characters'
-    }
-    
-    if (!confirmPassword) {
-      errors.confirmPassword = 'Please confirm your password'
-    } else if (password !== confirmPassword) {
-      errors.confirmPassword = 'Passwords do not match'
-    }
-    
-    setFormErrors(errors)
-    return Object.keys(errors).length === 0
-  }
-  
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    clearError()
-    
-    if (validateForm()) {
-      await register(email, password, firstName, lastName, role)
-    }
-  }
-  
-  return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <motion.div 
-          className="auth-form-container"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <h1 className="auth-title">Create Account</h1>
-          <p className="auth-subtitle">Join Spacer and start booking spaces</p>
-          
-          {error && (
-            <div className="auth-error">
-              {error}
-            </div>
-          )}
-          
-          <form className="auth-form" onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="firstName" className="form-label">First Name</label>
-              <input
-                type="text"
-                id="firstName"
-                className={`form-input ${formErrors.firstName ? 'error' : ''}`}
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Enter your first name"
-              />
-              {formErrors.firstName && (
-                <span className="form-error">{formErrors.firstName}</span>
-              )}
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="lastName" className="form-label">Last Name</label>
-              <input
-                type="text"
-                id="lastName"
-                className={`form-input ${formErrors.lastName ? 'error' : ''}`}
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Enter your last name"
-              />
-              {formErrors.lastName && (
-                <span className="form-error">{formErrors.lastName}</span>
-              )}
-            </div>
+  const navigate = useNavigate();
+  const { register } = useAuth();
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    role: 'client', // Changed to lowercase to match backend
+    phoneNumber: '',
+    businessName: ''
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-            <div className="form-group">
-              <label htmlFor="role" className="form-label">Role</label>
-              <select
-                id="role"
-                className="form-select"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-              >
-                <option value="CLIENT">Client</option>
-                <option value="SPACE_OWNER">Space Owner</option>
-              </select>
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="email" className="form-label">Email</label>
-              <input
-                type="email"
-                id="email"
-                className={`form-input ${formErrors.email ? 'error' : ''}`}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-              />
-              {formErrors.email && (
-                <span className="form-error">{formErrors.email}</span>
-              )}
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="password" className="form-label">Password</label>
-              <input
-                type="password"
-                id="password"
-                className={`form-input ${formErrors.password ? 'error' : ''}`}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Create a password"
-              />
-              {formErrors.password && (
-                <span className="form-error">{formErrors.password}</span>
-              )}
-            </div>
-            
-            <div className="form-group">
-              <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
-              <input
-                type="password"
-                id="confirmPassword"
-                className={`form-input ${formErrors.confirmPassword ? 'error' : ''}`}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm your password"
-              />
-              {formErrors.confirmPassword && (
-                <span className="form-error">{formErrors.confirmPassword}</span>
-              )}
-            </div>
-            
-            <button 
-              type="submit" 
-              className={`btn btn-primary btn-block ${loading ? 'btn-disabled' : ''}`}
-              disabled={loading}
-            >
-              {loading ? 'Creating Account...' : 'Create Account'}
-            </button>
-          </form>
-          
-          <div className="auth-links">
-            <p>
-              Already have an account? <Link to="/login">Sign in</Link>
-            </p>
-          </div>
-        </motion.div>
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const validateForm = () => {
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+      setError('All fields are required');
+      return false;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return false;
+    }
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return false;
+    }
+    if (formData.role === 'owner' && !formData.phoneNumber) { // Updated role check
+      setError('Phone number is required for space owners');
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    
+    if (!validateForm()) return;
+
+    try {
+      setLoading(true);
+      // Format the data according to backend expectations
+      const registrationData = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email.toLowerCase(),
+        password: formData.password,
+        role: formData.role.toLowerCase(), // Convert to lowercase to match backend expectations
+        phone_number: formData.phoneNumber || null,
+        business_name: formData.role === 'SPACE_OWNER' ? 
+          (formData.businessName || `${formData.firstName}'s Business`) : null
+      };
+
+      console.log('Sending registration data:', registrationData); // Debug log
+      await register(registrationData);
+      navigate('/login');
+    } catch (err) {
+      setError(err.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="register-container">
+      <form onSubmit={handleSubmit} className="register-form">
+        <h2>Create Account</h2>
         
-        <motion.div 
-          className="auth-image"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <div className="auth-overlay"></div>
-        </motion.div>
-      </div>
+        {error && <div className="error-message">{error}</div>}
+        
+        <div className="form-group">
+          <label htmlFor="firstName">First Name *</label>
+          <input
+            type="text"
+            id="firstName"
+            name="firstName"
+            value={formData.firstName}
+            onChange={handleChange}
+            disabled={loading}
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="lastName">Last Name *</label>
+          <input
+            type="text"
+            id="lastName"
+            name="lastName"
+            value={formData.lastName}
+            onChange={handleChange}
+            disabled={loading}
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="email">Email *</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            disabled={loading}
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="password">Password *</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            disabled={loading}
+            required
+            minLength={6}
+          />
+          <small>Password must be at least 6 characters long</small>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="confirmPassword">Confirm Password *</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            disabled={loading}
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="role">Register as *</label>
+          <select
+            id="role"
+            name="role"
+            value={formData.role}
+            onChange={handleChange}
+            disabled={loading}
+            required
+          >
+            <option value="client">Client</option>
+            <option value="owner">Space Owner</option>
+          </select>
+        </div>
+
+        {formData.role === 'owner' && ( // Updated role check
+          <>
+            <div className="form-group">
+              <label htmlFor="phoneNumber">Phone Number *</label>
+              <input
+                type="tel"
+                id="phoneNumber"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                placeholder="e.g., 254712345678"
+                disabled={loading}
+                required
+              />
+            </div>
+            {/* ... rest of space owner fields ... */}
+          </>
+        )}
+
+        <button type="submit" disabled={loading}>
+          {loading ? 'Creating Account...' : 'Register'}
+        </button>
+      </form>
     </div>
-  )
+  );
 }
 
-export default Register
+export default Register;

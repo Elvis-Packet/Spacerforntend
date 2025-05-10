@@ -34,10 +34,14 @@ function Login() {
   
   const handleSubmit = async (e) => {
     e.preventDefault()
-    clearError()
+    if (clearError) clearError() // Add conditional check
     
     if (validateForm()) {
-      await login(email, password)
+      try {
+        await login(email, password)
+      } catch (err) {
+        console.error('Login error:', err)
+      }
     }
   }
   

@@ -1,63 +1,41 @@
 import { API_BASE_URL, handleResponse, getAuthHeader } from '../config/api';
 
 export const spacesService = {
-  getSpaces: async (page = 1, perPage = 10, status = '', type = '', city = '') => {
-    let url = `${API_BASE_URL}/spaces/?page=${page}&per_page=${perPage}`;
-    if (status) {
-      url += `&status=${status}`;
-    }
-    if (type) {
-      url += `&type=${type}`;
-    }
-    if (city) {
-      url += `&city=${city}`;
-    }
-    const response = await fetch(url, {
-      headers: {
-        ...getAuthHeader(),
-      },
+  getSpaces: async (page = 1, perPage = 10, filters = {}) => {
+    const queryParams = new URLSearchParams({
+      page: page,
+      per_page: perPage,
+      ...filters
+    });
+    
+    const response = await fetch(`${API_BASE_URL}/spaces?${queryParams}`, {
+      headers: getAuthHeader(),
     });
     return handleResponse(response);
   },
 
   getSpaceById: async (id) => {
     const response = await fetch(`${API_BASE_URL}/spaces/${id}`, {
-      headers: {
-        ...getAuthHeader(),
-      },
+      headers: getAuthHeader(),
     });
     return handleResponse(response);
   },
 
   createSpace: async (spaceData) => {
-    // Map user-friendly type to backend enum values
-    const typeMapping = {
-      'Meeting Room': 'meeting_room',
-      'Event Space': 'event_space',
-      'Coworking': 'coworking',
-      'Studio': 'studio',
-      'Other': 'other'
-    };
-    const mappedType = typeMapping[spaceData.type] || spaceData.type;
-    const payload = { ...spaceData, type: mappedType };
-
-    // Use FormData to support image upload with other data
     const formData = new FormData();
-    for (const key in payload) {
-      formData.append(key, payload[key]);
-    }
-    if (spaceData.images && spaceData.images.length > 0) {
-      spaceData.images.forEach((imageFile) => {
-        formData.append('images', imageFile);
-      });
-    }
+    Object.keys(spaceData).forEach(key => {
+      if (key === 'images') {
+        spaceData.images.forEach(image => {
+          formData.append('images', image);
+        });
+      } else {
+        formData.append(key, spaceData[key]);
+      }
+    });
 
-    const response = await fetch(`${API_BASE_URL}/spaces/`, {
+    const response = await fetch(`${API_BASE_URL}/spaces`, {
       method: 'POST',
-      headers: {
-        ...getAuthHeader(),
-        // 'Content-Type' should NOT be set when sending FormData; browser sets it automatically
-      },
+      headers: getAuthHeader(),
       body: formData,
     });
     return handleResponse(response);
@@ -108,20 +86,14 @@ export const spacesService = {
 
   uploadSpaceImage: async (spaceId, imageFile, isPrimary = false) => {
     const formData = new FormData();
-    formData.append('images', imageFile);
-    if (isPrimary) {
-      formData.append('is_primary', 'true');
-    }
+    formData.append('image', imageFile);
+    formData.append('is_primary', isPrimary);
 
     const response = await fetch(`${API_BASE_URL}/spaces/${spaceId}/images`, {
       method: 'POST',
-      headers: {
-        ...getAuthHeader(),
-        // 'Content-Type' should NOT be set when sending FormData; browser sets it automatically
-      },
+      headers: getAuthHeader(),
       body: formData,
     });
-
     return handleResponse(response);
   }
 };

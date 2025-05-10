@@ -1,219 +1,134 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { useAuth } from '../context/AuthContext'
-import { spacesService } from '../services/spacesService'
-import { bookingsService } from '../services/bookingsService'
-import './Dashboard.css'
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { bookingsService } from '../services/bookingsService';
+import './Dashboard.css';
 
 function Dashboard() {
-  const { user } = useAuth()
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [recentBookings, setRecentBookings] = useState([])
-  
+  const { user } = useAuth();
+  const [recentBookings, setRecentBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [stats, setStats] = useState({
+    totalBookings: 0,
+    totalSpent: 0,
+    upcomingBookings: 0
+  });
+
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    const fetchBookings = async () => {
       try {
-        setLoading(true)
+        setLoading(true);
+        const response = await bookingsService.getBookings(1, 5); // Get first 5 bookings
         
-        // Note: In a real app, you would fetch from a user-specific endpoint
-        // For this demo, we're fetching real bookings from the backend
-        const bookings = await bookingsService.getBookings()
-        setRecentBookings(bookings)
+        // Ensure we have an array of bookings
+        const bookings = response?.bookings || [];
+        setRecentBookings(bookings);
+
+        // Calculate stats only if we have bookings
+        if (Array.isArray(bookings) && bookings.length > 0) {
+          const stats = bookings.reduce((acc, booking) => ({
+            totalBookings: acc.totalBookings + 1,
+            totalSpent: acc.totalSpent + (booking.total_price || 0),
+            upcomingBookings: acc.upcomingBookings + 
+              (new Date(booking.start_time) > new Date() ? 1 : 0)
+          }), {
+            totalBookings: 0,
+            totalSpent: 0,
+            upcomingBookings: 0
+          });
+          setStats(stats);
+        }
       } catch (err) {
-        setError('Failed to load dashboard data')
-        console.error(err)
+        setError(err.message);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
-    
-    fetchDashboardData()
-  }, [])
-  
-  // Format date for display
-  const formatDate = (dateString) => {
-    const options = { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }
-    return new Date(dateString).toLocaleDateString(undefined, options)
+    };
+
+    fetchBookings();
+  }, []);
+
+  if (loading) {
+    return <div className="dashboard-loading">Loading...</div>;
   }
-  
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
+
+  if (error) {
+    return <div className="dashboard-error">Error: {error}</div>;
   }
-  
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        duration: 0.4
-      }
-    }
-  }
-  
+
   return (
-    <div className="dashboard-page">
-      <div className="container">
-        <div className="dashboard-header">
-          <motion.h1 
-            className="dashboard-title"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            Dashboard
-          </motion.h1>
-          <motion.p 
-            className="dashboard-welcome"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            Welcome back, User #{user?.id || 'User'}
-          </motion.p>
+    <div className="dashboard">
+      <div className="dashboard-header">
+        <h1>Welcome back, {user?.first_name || 'User'}</h1>
+      </div>
+
+      <div className="dashboard-stats">
+        <div className="stat-card">
+          <h3>Total Bookings</h3>
+          <p>{stats.totalBookings}</p>
         </div>
-        
-        {loading ? (
-          <div className="loading">
-            <div className="loading-spinner"></div>
-          </div>
-        ) : error ? (
-          <div className="error-message">
-            {error}
+        <div className="stat-card">
+          <h3>Total Spent</h3>
+          <p>${stats.totalSpent.toFixed(2)}</p>
+        </div>
+        <div className="stat-card">
+          <h3>Upcoming Bookings</h3>
+          <p>{stats.upcomingBookings}</p>
+        </div>
+      </div>
+
+      <div className="recent-bookings">
+        <div className="section-header">
+          <h2>Recent Bookings</h2>
+          <Link to="/bookings" className="view-all-link">
+            View All <span className="arrow">→</span>
+          </Link>
+        </div>
+
+        {recentBookings.length > 0 ? (
+          <div className="bookings-list">
+            {recentBookings.map((booking) => (
+              <div key={booking.id} className="booking-card">
+                <div className="booking-info">
+                  <h3 className="booking-space-name">{booking.space_name}</h3>
+                  <div className="booking-dates">
+                    <div className="booking-date">
+                      <span className="date-label">From:</span>
+                      <span className="date-value">
+                        {new Date(booking.start_time).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="booking-date">
+                      <span className="date-label">To:</span>
+                      <span className="date-value">
+                        {new Date(booking.end_time).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="booking-meta">
+                    <div className="booking-price">
+                      ${booking.total_price?.toFixed(2)}
+                    </div>
+                    <div className={`booking-status ${booking.status}`}>
+                      {booking.status}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="dashboard-content">
-            <motion.div 
-              className="dashboard-stats"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              <motion.div className="stat-card" variants={itemVariants}>
-                <div className="stat-icon">🏠</div>
-                <div className="stat-value">{recentBookings.length}</div>
-                <div className="stat-label">Active Bookings</div>
-              </motion.div>
-              
-              <motion.div className="stat-card" variants={itemVariants}>
-                <div className="stat-icon">✅</div>
-                <div className="stat-value">10</div>
-                <div className="stat-label">Completed Bookings</div>
-              </motion.div>
-              
-              <motion.div className="stat-card" variants={itemVariants}>
-                <div className="stat-icon">💰</div>
-                <div className="stat-value">
-                  ${recentBookings.reduce((sum, booking) => sum + booking.total_cost, 0).toFixed(2)}
-                </div>
-                <div className="stat-label">Total Spent</div>
-              </motion.div>
-            </motion.div>
-            
-            <motion.div 
-              className="dashboard-section"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              <div className="section-header">
-                <h2 className="section-title">Recent Bookings</h2>
-                <Link to="/bookings" className="view-all-link">
-                  View All <span className="arrow">→</span>
-                </Link>
-              </div>
-              
-              {recentBookings.length > 0 ? (
-                <div className="bookings-list">
-                  {recentBookings.map((booking) => (
-                    <div key={booking.id} className="booking-card">
-                      <div className="booking-info">
-                        <h3 className="booking-space-name">{booking.space_name}</h3>
-                        <div className="booking-dates">
-                          <div className="booking-date">
-                            <span className="date-label">From:</span>
-                            <span className="date-value">{formatDate(booking.start_time)}</span>
-                          </div>
-                          <div className="booking-date">
-                            <span className="date-label">To:</span>
-                            <span className="date-value">{formatDate(booking.end_time)}</span>
-                          </div>
-                        </div>
-                        <div className="booking-meta">
-                          <div className="booking-price">${booking.total_cost.toFixed(2)}</div>
-                          <div className={`booking-status ${booking.status}`}>{booking.status}</div>
-                        </div>
-                      </div>
-                      <Link to={`/spaces/${booking.space_id}`} className="btn btn-secondary btn-small">
-                        View Space
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="no-bookings">
-                  <p>You don't have any bookings yet.</p>
-                  <Link to="/spaces" className="btn btn-primary">
-                    Browse Spaces
-                  </Link>
-                </div>
-              )}
-            </motion.div>
-            
-            <motion.div 
-              className="dashboard-section"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-            >
-              <div className="section-header">
-                <h2 className="section-title">Account Information</h2>
-              </div>
-              
-              <div className="account-info-card">
-                <div className="account-info-row">
-                  <span className="info-label">User ID:</span>
-                  <span className="info-value">{user?.id || 'N/A'}</span>
-                </div>
-                <div className="account-info-row">
-                  <span className="info-label">Account Type:</span>
-                  <span className="info-value">{user?.role === 'SPACE_OWNER' ? 'Space Owner' : 'Client'}</span>
-                </div>
-                <div className="account-info-row">
-                  <span className="info-label">Member Since:</span>
-                  <span className="info-value">{new Date().toLocaleDateString()}</span>
-                </div>
-                
-                <div className="account-actions">
-                  <button className="btn btn-outline btn-small">
-                    Edit Profile
-                  </button>
-                  <button className="btn btn-outline btn-small">
-                    Change Password
-                  </button>
-                </div>
-              </div>
-            </motion.div>
+          <div className="no-bookings">
+            <p>You haven't made any bookings yet.</p>
+            <Link to="/spaces" className="btn btn-primary">
+              Browse Spaces
+            </Link>
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
 
-export default Dashboard
+export default Dashboard;

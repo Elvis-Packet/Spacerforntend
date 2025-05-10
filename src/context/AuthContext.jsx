@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { jwtDecode } from 'jwt-decode'
 import { authService } from '../services/authService'
 
 const AuthContext = createContext(null)
@@ -20,61 +19,53 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const navigate = useNavigate()
+
+  const clearError = useCallback(() => {
+    setError(null)
+  }, [])
   
-  // Check if token exists in localStorage and is valid
-  const checkAuthStatus = useCallback(() => {
+  const checkAuthStatus = useCallback(async () => {
     setLoading(true)
     const token = localStorage.getItem('token')
-    console.log('checkAuthStatus token:', token)
     
-      if (token) {
-        try {
-          // Decode token to get user info
-          const decoded = jwtDecode(token)
-          const currentTime = Date.now() / 1000
-
-          // Check if token is expired
-          if (decoded.exp && decoded.exp < currentTime) {
-            localStorage.removeItem('token')
-            setUser(null)
-          } else {
-            setUser({ 
-              id: decoded.sub || decoded.id || decoded.user_id,
-              role: decoded.role || 'CLIENT'
-            })
-          }
-        } catch (err) {
-          console.error('Invalid token', err)
-          localStorage.removeItem('token')
-          setUser(null)
-        }
-      } else {
+    if (token) {
+      try {
+        // Verify token with backend
+        const userData = await authService.getCurrentUser()
+        setUser(userData)
+      } catch (err) {
+        console.error('Auth check failed:', err)
+        localStorage.removeItem('token')
         setUser(null)
       }
-    
+    }
     setLoading(false)
   }, [])
   
-  // Login function
+  const register = useCallback(async (userData) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await authService.register(userData)
+      return response
+    } catch (err) {
+      const errorMessage = err.message || 'Registration failed'
+      setError(errorMessage)
+      throw new Error(errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   const login = useCallback(async (email, password) => {
     setLoading(true)
     setError(null)
     
     try {
       const response = await authService.login({ email, password })
-      const { access_token } = response
-      console.log('login received access_token:', access_token)
-      
-      // Save token to localStorage
-      localStorage.setItem('token', access_token)
-      
-      // Decode token to get user info including role
-      const decoded = jwtDecode(access_token)
-      setUser({ 
-        id: decoded.sub || decoded.id || decoded.user_id,
-        role: decoded.role || 'CLIENT'
-      })
-      
+      localStorage.setItem('token', response.access_token)
+      const userData = await authService.getCurrentUser()
+      setUser(userData)
       navigate('/dashboard')
       return true
     } catch (err) {
@@ -85,50 +76,23 @@ export function AuthProvider({ children }) {
     }
   }, [navigate])
   
-  // Register function
-  const register = useCallback(async (email, password, first_name, last_name, role = 'CLIENT') => {
-    setLoading(true)
-    setError(null)
-    
-    try {
-      // Ensure role is uppercase to match backend enum
-      const roleUpper = role.toUpperCase()
-      await authService.register({ email, password, first_name, last_name, role: roleUpper })
-      
-      // Auto login after successful registration
-      return await login(email, password)
-    } catch (err) {
-      setError(err.message || 'Registration failed')
-      return false
-    } finally {
-      setLoading(false)
-    }
-  }, [login])
-  
-  // Logout function
   const logout = useCallback(() => {
-    localStorage.removeItem('token')
+    authService.logout()
     setUser(null)
     navigate('/')
   }, [navigate])
   
-  // Clear any auth errors
-  const clearError = useCallback(() => {
-    setError(null)
-  }, [])
-  
-  // Value object that will be passed to consumers
   const value = useMemo(() => ({
     user,
     loading,
     error,
     isAuthenticated: !!user,
     login,
-    register,
     logout,
     checkAuthStatus,
+    register,
     clearError
-  }), [user, loading, error, login, register, logout, checkAuthStatus, clearError])
+  }), [user, loading, error, login, logout, checkAuthStatus, register, clearError])
   
   return (
     <AuthContext.Provider value={value}>

@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
+import { useAuth } from './context/AuthContext'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
 import Home from './pages/Home'
@@ -9,10 +10,10 @@ import SpacesList from './pages/SpacesList'
 import SpaceDetails from './pages/SpaceDetails'
 import Dashboard from './pages/Dashboard'
 import Bookings from './pages/Bookings'
+import ManageSpaces from './pages/ManageSpaces'
 import Testimonials from './pages/Testimonials'
 import NotFound from './pages/NotFound'
 import ProtectedRoute from './components/auth/ProtectedRoute'
-import { useAuth } from './context/AuthContext'
 import './App.css'
 
 function App() {
@@ -53,6 +54,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <Bookings />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/manage-spaces" 
+            element={
+              <ProtectedRoute roleRequired="SPACE_OWNER">
+                <ManageSpaces />
               </ProtectedRoute>
             } 
           />

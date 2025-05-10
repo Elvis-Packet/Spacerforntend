@@ -7,8 +7,13 @@ import './Header.css'
 function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const { isAuthenticated, logout } = useAuth()
+  const { isAuthenticated, user, logout } = useAuth()
   const location = useLocation()
+
+  const handleLogout = () => {
+    logout()
+    setIsMenuOpen(false)
+  }
   
   // Handle scroll events to change header style
   useEffect(() => {
@@ -74,6 +79,13 @@ function Header() {
                     Dashboard
                   </Link>
                 </li>
+                {user?.role === 'SPACE_OWNER' && (
+                  <li className="nav-item">
+                    <Link to="/manage-spaces" className={location.pathname === '/manage-spaces' ? 'active' : ''}>
+                      Manage Spaces
+                    </Link>
+                  </li>
+                )}
                 <li className="nav-item">
                   <Link to="/bookings" className={location.pathname === '/bookings' ? 'active' : ''}>
                     My Bookings
@@ -84,7 +96,7 @@ function Header() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="logout-btn"
-                    onClick={logout}
+                    onClick={handleLogout}
                   >
                     Logout
                   </motion.button>
